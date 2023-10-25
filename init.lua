@@ -30,7 +30,11 @@ plugins = {
 {"williamboman/mason.nvim", config = function() require("mason").setup{} end},
 
 {'nvim-treesitter/nvim-treesitter', version=false, build=":TSUpdate",
-    config = function () require("nvim-treesitter.configs").setup{highlight = {enable = true}} end},
+    config = function ()
+        require("nvim-treesitter.configs").setup{
+            highlight = {enable = true},
+            auto_install = true,}
+        end},
 
 {"L3MON4D3/LuaSnip", version = "v2.*",
     dependencies = { "rafamadriz/friendly-snippets",
@@ -46,14 +50,15 @@ plugins = {
     "saadparwaiz1/cmp_luasnip",
   },},
 
+{"simrat39/rust-tools.nvim"},
+{'saecki/crates.nvim', config = function() require('crates').setup() end},
+
 {'junegunn/fzf'},
 {'junegunn/fzf.vim'},
 {'ojroques/nvim-lspfuzzy', config = function() require("lspfuzzy").setup{} end},
 {'nvim-lua/plenary.nvim'},
 {"nvim-telescope/telescope.nvim"},
 
-{'akinsho/bufferline.nvim', version = "*", dependencies = 'nvim-tree/nvim-web-devicons',
-    config = function() require("bufferline").setup{} end},
 {"nvim-lualine/lualine.nvim", config = function() require("lualine").setup{} end},
 
 {"lewis6991/gitsigns.nvim", config = function() require("gitsigns").setup{} end},
@@ -63,8 +68,6 @@ plugins = {
 {'echasnovski/mini.comment', version = '*', config = function() require("mini.comment").setup{} end},
 {'echasnovski/mini.pairs', version = '*', config = function() require("mini.pairs").setup{} end},
 {'echasnovski/mini.surround', version = '*', config = function() require("mini.surround").setup{} end},
-{"echasnovski/mini.indentscope", version = false, opts = {symbol = "│", options = { try_as_border = true }},
-    config = function() require("mini.indentscope").setup{} end},
 
 {"folke/trouble.nvim"},
 
@@ -92,6 +95,7 @@ opt('b', 'smartindent', true)                         -- Insert indents automati
 opt('b', 'tabstop', indent)                           -- Number of spaces tabs count for
 opt('o', 'hidden', true)                              -- Enable modified buffers in background
 opt('o', 'ignorecase', true)                          -- Ignore case
+opt('o', 'completeopt', "menuone,noinsert,noselect")   -- Completion
 opt('o', 'joinspaces', false)                         -- No double spaces with join after a dot
 opt('o', 'scrolloff', 4 )                             -- Lines of context
 opt('o', 'shiftround', true)                          -- Round indent
@@ -219,6 +223,30 @@ lsp.clangd.setup {
         },
         filetypes = {"c", "cpp", "objc", "objcpp"},
     }
+}
+
+require("rust-tools").setup{
+    tools = {
+    	runnables = {
+      	    use_telescope = true,
+    	},
+        inlay_hints = {
+            auto = true,
+            show_parameter_hints = false,
+            parameter_hints_prefix = "",
+            other_hints_prefix = "",
+        },
+    },
+    server = {
+        capabilities = capabilities,
+        settings = {
+            ["rust-analyzer"] = {
+                checkOnSave = {
+                    command = "clippy",
+                },
+            },
+        },
+    },
 }
 
 map('n', '<space>,', '<cmd>lua vim.lsp.diagnostic.goto_prev()<CR>')
