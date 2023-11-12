@@ -45,6 +45,7 @@ plugins = {
 {"hrsh7th/nvim-cmp", version = false, -- last release is way too old
   dependencies = {
     "hrsh7th/cmp-nvim-lsp",
+    "hrsh7th/cmp-cmdline",
     "hrsh7th/cmp-buffer",
     "hrsh7th/cmp-path",
     "saadparwaiz1/cmp_luasnip",
@@ -109,6 +110,7 @@ opt('w', 'number', true)                              -- Print line number
 opt('w', 'relativenumber', false)                      -- Relative line numbers
 -- opt('w', 'wrap', false)                               -- Disable line wrap
 vim.opt.swapfile = false
+vim.opt.mouse = ""
 
 g["netrw_banner"] = 0
 g["netrw_liststyle"] = 3
@@ -181,6 +183,15 @@ cmp.setup.cmdline({ '/', '?' }, {
   sources = {
     { name = 'buffer' }
   }
+})
+cmp.setup.cmdline(':', {
+  mapping = cmp.mapping.preset.cmdline(),
+  sources = cmp.config.sources({
+    { name = 'path' }
+  },
+  {
+    { name = 'cmdline' }
+  })
 })
 
 local capabilities = require('cmp_nvim_lsp').default_capabilities()
