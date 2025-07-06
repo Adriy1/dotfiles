@@ -36,7 +36,7 @@ plugins = {
             auto_install = true,}
         end},
 
-{"L3MON4D3/LuaSnip", version = "v2.*",
+{"L3MON4D3/LuaSnip", version = "v2.*", lazy=true,
     dependencies = { "rafamadriz/friendly-snippets",
     config = function()
       require("luasnip.loaders.from_vscode").lazy_load()
@@ -78,7 +78,84 @@ plugins = {
     end
 };
 
+{'Vigemus/iron.nvim'},
+
+{
+  "yetone/avante.nvim",
+  event = "VeryLazy",
+  version = false, -- Never set this value to "*"! Never!
+  opts = {
+    -- add any opts here
+    -- for example
+    providers = {
+      openai = {
+        endpoint = "https://api.anthropic.com",
+        model = "claude-3-7-sonnet-20250219", -- your desired model (or use gpt-4o, etc.)
+        timeout = 30000, -- Timeout in milliseconds, increase this for reasoning models
+        extra_request_body = {
+          max_completion_tokens = 8192, -- Increase this to include reasoning tokens (for reasoning models)
+          temperature = 0,
+        },
+        --reasoning_effort = "medium", -- low|medium|high, only used for reasoning models
+    },
+
+    },
+    mappings = {
+      ---@class AvanteConflictMappings
+      diff = {
+        ours = "ao",
+        theirs = "at",
+        all_theirs = "aa",
+        both = "ab",
+        cursor = "ac",
+      },
+  },
+  },
+  -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
+  build = "make",
+  -- build = "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false" -- for windows
+  dependencies = {
+    "nvim-treesitter/nvim-treesitter",
+    "stevearc/dressing.nvim",
+    "nvim-lua/plenary.nvim",
+    "MunifTanjim/nui.nvim",
+    --- The below dependencies are optional,
+    "echasnovski/mini.pick", -- for file_selector provider mini.pick
+    "nvim-telescope/telescope.nvim", -- for file_selector provider telescope
+    "hrsh7th/nvim-cmp", -- autocompletion for avante commands and mentions
+    "ibhagwan/fzf-lua", -- for file_selector provider fzf
+    "nvim-tree/nvim-web-devicons", -- or echasnovski/mini.icons
+    "zbirenbaum/copilot.lua", -- for providers='copilot'
+    {
+      -- support for image pasting
+      "HakonHarnes/img-clip.nvim",
+      event = "VeryLazy",
+      opts = {
+        -- recommended settings
+        default = {
+          embed_image_as_base64 = false,
+          prompt_for_file_name = false,
+          drag_and_drop = {
+            insert_mode = true,
+          },
+          -- required for Windows users
+          use_absolute_path = false,
+        },
+      },
+    },
+    {
+      -- Make sure to set this up properly if you have lazy=true
+      'MeanderingProgrammer/render-markdown.nvim',
+      opts = {
+        file_types = { "markdown", "Avante" },
+      },
+      ft = { "markdown", "Avante" },
+    },
+  },
+},
+
 {'mhartington/oceanic-next'},
+{ "EdenEast/nightfox.nvim" },
 {"folke/tokyonight.nvim"},
 {"tiagovla/tokyodark.nvim"},
 { "catppuccin/nvim"},
@@ -139,6 +216,8 @@ map('', '<C-l>', '<C-W>l')
 
 map('n', '<C-b>', ':SwitchBuffer<CR>')
 map('n', '<leader>n', ':Vexplore<CR>')
+
+vim.keymap.set('n', '<leader>b', ':!black %<CR>', { noremap = true, silent = true })
 
 -------------------- CMP -----------------------------------
 local cmp = require'cmp'
@@ -230,7 +309,7 @@ lsp.clangd.setup {
     on_attach = on_attach,
     default_config = {
         cmd = {
-            "clangd-12", "--background-index", "--pch-storage=memory",
+            "clangd", "--background-index", "--pch-storage=memory",
             "--clang-tidy", "--suggest-missing-includes"
         },
         filetypes = {"c", "cpp", "objc", "objcpp"},
@@ -276,3 +355,101 @@ map('n', '<M-o>', "<cmd>ClangdSwitchSourceHeader<cr>")
 
 -------------------- COMMANDS ------------------------------
 cmd 'au TextYankPost * lua vim.highlight.on_yank {on_visual = false}'  -- disabled in visual mode
+
+-------------------- REPL ----------------------------------
+local iron = require("iron.core")
+local view = require("iron.view")
+local common = require("iron.fts.common")
+
+iron.setup {
+  config = {
+    -- Whether a repl should be discarded or not
+    scratch_repl = true,
+    -- Your repl definitions come here
+    repl_definition = {
+      sh = {
+        -- Can be a table or a function that
+        -- returns a table (see below)
+        command = {"zsh"}
+      },
+      python = {
+        command = { "ipython", "--no-autoindent" },  -- or { "ipython", "--no-autoindent" }
+        format = common.bracketed_paste_python,
+        block_dividers = { "# %%", "#%%" },
+      }
+    },
+    -- set the file type of the newly created repl to ft
+    -- bufnr is the buffer id of the REPL and ft is the filetype of the
+    -- language being used for the REPL.
+    repl_filetype = function(bufnr, ft)
+      return ft
+      -- or return a string name such as the following
+      -- return "iron"
+    end,
+    -- How the repl window will be displayed
+    -- See below for more information
+    repl_open_cmd = view.split.rightbelow("30%", {
+	    winfixwidth = false,
+	    winfixheight = false,
+		  -- any window-local configuration can be used here
+		number = true
+	})
+
+    -- repl_open_cmd can also be an array-style table so that multiple
+    -- repl_open_commands can be given.
+    -- When repl_open_cmd is given as a table, the first command given will
+    -- be the command that `IronRepl` initially toggles.
+    -- Moreover, when repl_open_cmd is a table, each key will automatically
+    -- be available as a keymap (see `keymaps` below) with the names
+    -- toggle_repl_with_cmd_1, ..., toggle_repl_with_cmd_k
+    -- For example,
+    --
+    -- repl_open_cmd = {
+    --   view.split.vertical.rightbelow("%40"), -- cmd_1: open a repl to the right
+    --   view.split.rightbelow("%25")  -- cmd_2: open a repl below
+    -- }
+
+  },
+  -- Iron doesn't set keymaps by default anymore.
+  -- You can set them here or manually add keymaps to the functions in iron.core
+  keymaps = {
+    toggle_repl = "<space>rr", -- toggles the repl open and closed.
+    -- If repl_open_command is a table as above, then the following keymaps are
+    -- available
+    -- toggle_repl_with_cmd_1 = "<space>rv",
+    -- toggle_repl_with_cmd_2 = "<space>rh",
+    restart_repl = "<space>rR", -- calls `IronRestart` to restart the repl
+    send_motion = "<space>sv",
+    visual_send = "<space>sv",
+    send_file = "<space>sf",
+    send_line = "<space>sl",
+    send_paragraph = "<space>sp",
+    send_until_cursor = "<space>su",
+    send_mark = "<space>sm",
+    send_code_block = "<space>sb",
+    send_code_block_and_move = "<space>sn",
+    mark_motion = "<space>mc",
+    mark_visual = "<space>mc",
+    remove_mark = "<space>md",
+    cr = "<space>s<cr>",
+    interrupt = "<space>s<space>",
+    exit = "<space>sq",
+    clear = "<space>cl",
+  },
+  -- If the highlight is on, you can change how it looks
+  -- For the available options, check nvim_set_hl
+  highlight = {
+    italic = true
+  },
+  ignore_blank_lines = true, -- ignore blank lines when sending visual select lines
+}
+
+-- iron also has a list of commands, see :h iron-commands for all available commands
+vim.keymap.set('n', '<space>rf', '<cmd>IronFocus<cr>')
+vim.keymap.set('n', '<space>rh', '<cmd>IronHide<cr>')
+-- vim.keymap.set('t', '<Esc>', '<C-\\><C-n>', { noremap = true }) -- breaking Esc in telescope windows
+-- Map Ctrl+h/j/k/l to switch buffers in Terminal mode
+vim.keymap.set('t', '<C-h>', '<C-\\><C-n>:wincmd h<CR>', { noremap = true, silent = true })
+vim.keymap.set('t', '<C-j>', '<C-\\><C-n>:wincmd j<CR>', { noremap = true, silent = true })
+vim.keymap.set('t', '<C-k>', '<C-\\><C-n>:wincmd k<CR>', { noremap = true, silent = true })
+vim.keymap.set('t', '<C-l>', '<C-\\><C-n>:wincmd l<CR>', { noremap = true, silent = true })
